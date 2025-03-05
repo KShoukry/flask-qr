@@ -4,7 +4,7 @@ import io
 
 app = Flask(__name__)
 
-# A simple HTML template with a form
+# Simple HTML template with a form to input data
 html = '''
 <!doctype html>
 <html lang="en">
@@ -18,32 +18,27 @@ html = '''
         <input type="text" name="data" placeholder="Enter text or URL" required>
         <input type="submit" value="Generate">
     </form>
-    {% if qr_code %}
-    <h2>Your QR Code:</h2>
-    <img src="{{ qr_code }}" alt="QR Code">
-    {% endif %}
 </body>
 </html>
 '''
 
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    qr_code_img = None
     if request.method == 'POST':
         data = request.form['data']
-        # Generate QR code
+        # Generate the QR code image
         img = qrcode.make(data)
         buf = io.BytesIO()
         img.save(buf, format='PNG')
         buf.seek(0)
-        # Convert to base64 for displaying in HTML
-        import base64
-        img_b64 = base64.b64encode(buf.getvalue()).decode('ascii')
-        qr_code_img = f"data:image/png;base64,{img_b64}"
-    return render_template_string(html, qr_code=qr_code_img)
+        # Automatically download the image by sending it as an attachment
+        return send_file(buf, mimetype='image/png', as_attachment=True, download_name='qrcode.png')
+    return render_template_string(html)
 
 
 if __name__ == '__main__':
+    # Use the dynamic port provided by deployment services like Render
     import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
